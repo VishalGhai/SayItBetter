@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Say It Better</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+<div class="wrap">
+  <header class="top">
+    <h1><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9L12 2zm7 11l.9 2.6 2.6.9-2.6.9L19 20l-.9-2.6-2.6-.9 2.6-.9L19 13zM5 14l.7 2 2 .7-2 .7L5 19.4l-.7-2-2-.7 2-.7L5 14z"/></svg></span>Say It Better</h1>
+    <p>Paste a rough prompt. It is checked against Role, Goal, Context, Task, Method, Format and Validation, you answer a few quick questions, and you get a complete prompt back.</p>
+  </header>
+
+  <ol class="steps" id="steps">
+    <li data-step="1" class="active"><span>1</span>Write</li>
+    <li data-step="2"><span>2</span>Refine</li>
+    <li data-step="3"><span>3</span>Final prompt</li>
+  </ol>
+
+  <div id="error" class="banner error" role="alert" hidden></div>
+
+  <section id="step-input" class="panel">
+    <label class="lbl" for="raw">Your prompt</label>
+    <textarea id="raw" rows="8" placeholder="e.g. write a blog post about kubernetes for beginners"></textarea>
+    <div class="chips" id="examples"></div>
+    <div class="row">
+      <span class="muted small" id="rawCount">0 characters</span>
+      <button class="btn primary" id="analyzeBtn" type="button">Analyze prompt</button>
+    </div>
+  </section>
+
+  <section id="step-refine" class="panel" hidden>
+    <div class="score-box">
+      <div>
+        <div class="lbl">Prompt strength</div>
+        <div class="bar"><div class="bar-fill" id="scoreFill"></div></div>
+        <div class="muted small" id="scoreText"></div>
+      </div>
+      <div class="dimchips" id="dimChips"></div>
+    </div>
+    <p class="summary" id="summary"></p>
+    <div id="dims"></div>
+    <div class="card">
+      <label class="lbl" for="extra">Anything else the AI should know? <span class="muted">(optional)</span></label>
+      <textarea id="extra" rows="3" placeholder="Extra constraints, examples, things to avoid..."></textarea>
+    </div>
+    <div class="row">
+      <button class="btn" id="backBtn" type="button">Back</button>
+      <button class="btn primary" id="generateBtn" type="button">Generate final prompt</button>
+    </div>
+  </section>
+
+  <section id="step-final" class="panel" hidden>
+    <div class="final-head">
+      <div class="lbl">Final prompt <span class="muted">(editable)</span></div>
+      <button class="btn primary" id="copyBtn" type="button">Copy</button>
+    </div>
+    <textarea id="finalText" rows="22" spellcheck="false"></textarea>
+    <div class="row">
+      <div class="btngroup">
+        <button class="btn" id="editAnswersBtn" type="button">Back to questions</button>
+        <button class="btn" id="regenBtn" type="button">Regenerate</button>
+      </div>
+      <button class="btn" id="restartBtn" type="button">Start over</button>
+    </div>
+  </section>
+
+  <footer class="muted small">Prompts are sent to text.pollinations.ai for analysis and generation. Do not paste secrets or personal data. Review the result before using it in customer-facing or official material.</footer>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

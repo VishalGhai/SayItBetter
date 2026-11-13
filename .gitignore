@@ -1,0 +1,4 @@
+.DS_Store
+__pycache__/
+MASTER_CONTEXT.md
+.claude/
