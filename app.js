@@ -113,18 +113,33 @@ async function callLLM(text, attempt = 1) {
 
 function repairJSON(s) {
   const stack = [];
+  let out = "";
   let inStr = false;
   let esc = false;
   for (const c of s) {
     if (inStr) {
+      out += c;
       if (esc) esc = false;
       else if (c === "\\") esc = true;
       else if (c === '"') inStr = false;
-    } else if (c === '"') inStr = true;
-    else if (c === "{" || c === "[") stack.push(c === "{" ? "}" : "]");
-    else if (c === "}" || c === "]") stack.pop();
+    } else if (c === '"') {
+      inStr = true;
+      out += c;
+    } else if (c === "{" || c === "[") {
+      stack.push(c === "{" ? "}" : "]");
+      out += c;
+    } else if (c === "}" || c === "]") {
+      const i = stack.lastIndexOf(c);
+      if (i < 0) continue;
+      while (stack.length - 1 > i) out += stack.pop();
+      stack.pop();
+      out += c;
+      if (!stack.length) return out;
+    } else {
+      out += c;
+    }
   }
-  return s.replace(/,\s*$/, "") + (inStr ? '"' : "") + stack.reverse().join("");
+  return out.replace(/,\s*$/, "") + (inStr ? '"' : "") + stack.reverse().join("");
 }
 
 function extractJSON(text) {
