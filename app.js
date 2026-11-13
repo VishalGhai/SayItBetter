@@ -70,23 +70,24 @@ async function transportLocal(text, signal) {
   return { res, body: await res.json() };
 }
 
+const TOKEN_LIMIT_MSG = "The model ran out of output space while reasoning. Try again, or shorten your prompt.";
+
 async function transportDirect(text, signal) {
-  const url = POLLINATIONS + encodeURIComponent(text);
-  const res = url.length <= 6000
-    ? await fetch(url, { signal })
-    : await fetch(POLLINATIONS, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [{ role: "user", content: text }] }),
-        signal,
-      });
+  const res = await fetch(POLLINATIONS, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages: [{ role: "user", content: text }], reasoning_effort: "low", max_tokens: 16000 }),
+    signal,
+  });
   const raw = (await res.text()).trim();
-  if (res.ok) return { res, body: { text: raw } };
+  const failed = /^\{\s*"success"\s*:\s*false/.test(raw);
+  if (res.ok && !failed) return { res, body: { text: raw } };
   if (res.status === 402 || res.status === 429) {
     const m = raw.match(/wait (\d+) second/i);
     return { res: { ok: false, status: 429 }, body: { error: "Free limit reached (one reply every 45 seconds).", retry_after: m ? +m[1] : 45 } };
   }
-  return { res, body: { error: "The text service returned HTTP " + res.status + "." } };
+  const msg = raw.includes("output_token_limit_exceeded") ? TOKEN_LIMIT_MSG : "The text service returned HTTP " + res.status + ".";
+  return { res: { ok: false, status: res.ok ? 502 : res.status }, body: { error: msg } };
 }
 
 async function callLLM(text, attempt = 1) {

@@ -9,27 +9,42 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 API = "https://text.pollinations.ai/"
-MAX_GET_URL = 6000
-UPSTREAM_TIMEOUT = 85
+REASONING_EFFORT = "low"
+MAX_TOKENS = 16000
+UPSTREAM_TIMEOUT = 110
 HEADERS = {"User-Agent": "prompt-refiner-local/1.0"}
 
 
+TOKEN_LIMIT_MSG = "The model ran out of output space while reasoning. Try again, or shorten your prompt."
+
+
+def upstream_error(body: str):
+    if "output_token_limit_exceeded" in body:
+        return TOKEN_LIMIT_MSG
+    return None
+
+
 def call_upstream(prompt: str):
-    url = API + urllib.parse.quote(prompt, safe="")
-    if len(url) <= MAX_GET_URL:
-        req = urllib.request.Request(url, headers=HEADERS)
-    else:
-        body = json.dumps({"messages": [{"role": "user", "content": prompt}]}).encode()
-        req = urllib.request.Request(API, data=body, headers={**HEADERS, "Content-Type": "application/json"})
+    payload = {
+        "messages": [{"role": "user", "content": prompt}],
+        "reasoning_effort": REASONING_EFFORT,
+        "max_tokens": MAX_TOKENS,
+    }
+    req = urllib.request.Request(
+        API, data=json.dumps(payload).encode(), headers={**HEADERS, "Content-Type": "application/json"}
+    )
     try:
         with urllib.request.urlopen(req, timeout=UPSTREAM_TIMEOUT) as r:
-            return 200, {"text": r.read().decode("utf-8", "replace").strip()}
+            text = r.read().decode("utf-8", "replace").strip()
+            if text.startswith('{"success":false') or text.startswith('{"success": false'):
+                return 502, {"error": upstream_error(text) or "The text service reported an error."}
+            return 200, {"text": text}
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", "replace")
         if e.code in (402, 429):
             m = re.search(r"wait (\d+) second", body)
             return 429, {"error": "Free limit reached (one reply every 45 seconds).", "retry_after": int(m.group(1)) if m else 45}
-        return e.code, {"error": f"The text service returned HTTP {e.code}."}
+        return e.code, {"error": upstream_error(body) or f"The text service returned HTTP {e.code}."}
     except (urllib.error.URLError, TimeoutError) as e:
         return 502, {"error": f"Could not reach the text service ({getattr(e, 'reason', e)})."}
 
